@@ -24,7 +24,6 @@ import lejos.robotics.localization.PoseProvider;
 import lejos.robotics.navigation.MovePilot;
 import lejos.utility.Delay;
 
-
 public class EV3Skeleton {
 
     /**
@@ -56,15 +55,14 @@ public class EV3Skeleton {
     public static void main(String[] args) {
         initRobot();
         initPilot();
-        
+
         System.out.println("Press any button to start!");
         Button.waitForAnyPress();
-        
+
         // Add your code below here
         
         
-        
-        
+
     }
 
     /**
@@ -84,10 +82,70 @@ public class EV3Skeleton {
         leftMotor = new EV3LargeRegulatedMotor(brick.getPort("B"));
         rightMotor = new EV3LargeRegulatedMotor(brick.getPort("C"));
 
-        touchSensor = new EV3TouchSensorWrapper(brick.getPort("S1"));
-        gyroSensor = new EV3GyroSensorWrapper(brick.getPort("S2"));
-        colorSensor = new EV3ColorSensorWrapper(brick.getPort("S3"));
-        distanceSensor = new EV3UltrasonicSensorWrapper(brick.getPort("S4"));
+        // Initialize sensors in separate threads because each take a lot of time.
+        Thread touchThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (touchSensor == null) {
+                    try {
+                        touchSensor = new EV3TouchSensorWrapper(brick.getPort("S1"));
+                    } catch (IllegalArgumentException e) {
+                        System.err.println("Touch sensor: " + e.getMessage());
+                    }
+                }
+            }
+        });
+        Thread gyroThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (gyroSensor == null) {
+                    try {
+                        gyroSensor = new EV3GyroSensorWrapper(brick.getPort("S2"));
+                    } catch (IllegalArgumentException e) {
+                        System.err.println("Gyro sensor: " + e.getMessage());
+                    }
+                }
+            }
+        });
+        Thread colorThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (colorSensor == null) {
+                    try {
+                        colorSensor = new EV3ColorSensorWrapper(brick.getPort("S3"));
+                    } catch (IllegalArgumentException e) {
+                        System.err.println("Color sensor: " + e.getMessage());
+                    }
+                }
+            }
+        });
+        Thread distanceThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (distanceSensor == null) {
+                    try {
+                        distanceSensor = new EV3UltrasonicSensorWrapper(brick.getPort("S4"));
+                    } catch (IllegalArgumentException e) {
+                        System.err.println("Ultrasonic sensor: " + e.getMessage());
+                    }
+                }
+            }
+        });
+
+        touchThread.start();
+        gyroThread.start();
+        colorThread.start();
+        distanceThread.start();
+
+        // Wait for sensors to be initialized.
+        try {
+            touchThread.join();
+            gyroThread.join();
+            colorThread.join();
+            distanceThread.join();
+        } catch (InterruptedException e) {
+            System.err.println(e.getMessage());
+        }
 
         Button.LEDPattern(1); // Steady green
         Sound.beepSequenceUp();
@@ -97,7 +155,7 @@ public class EV3Skeleton {
     /**
      * Instantiates a MovePilot and PoseProvider.
      * <br>
-     * Don't call this function if you plan to use leftMotor and rightMotor 
+     * Don't call this function if you plan to use leftMotor and rightMotor
      * directly to control the robot.
      */
     public static void initPilot() {
@@ -112,8 +170,16 @@ public class EV3Skeleton {
 
         pilot = new MovePilot(chassis);
         poseProvider = new OdometryPoseProvider(pilot);
+
+        // Set default speed to 0.03 m/s and acceleration to 0.5 m/s^2
+        pilot.setLinearSpeed(0.03);
+        pilot.setLinearAcceleration(0.5);
+
+        // Set default turn speed to 180 deg/s and acceleration to 1800 deg/s^2
+        pilot.setAngularSpeed(180);
+        pilot.setAngularAcceleration(1800);
     }
-    
+
     /**
      * Wrapper class to allow easier use of EV3TouchSensor.
      */
@@ -125,7 +191,12 @@ public class EV3Skeleton {
         public EV3TouchSensorWrapper(Port port) {
             super(port);
 
-            sampleProvider = super.getTouchMode();
+            try {
+                sampleProvider = super.getTouchMode();
+            } catch (IllegalArgumentException e) {
+                super.close();
+                throw e;
+            }
             samples = new float[1];
         }
 
@@ -140,7 +211,7 @@ public class EV3Skeleton {
             return samples[0] != 0;
         }
     }
-    
+
     /**
      * Wrapper class to allow easier use of EV3GyroSensor.
      */
@@ -152,7 +223,13 @@ public class EV3Skeleton {
         public EV3GyroSensorWrapper(Port port) {
             super(port);
 
-            sampleProvider = super.getAngleAndRateMode();
+            try {
+                sampleProvider = super.getAngleAndRateMode();
+            } catch (IllegalArgumentException e) {
+                super.close();
+                throw e;
+            }
+
             samples = new float[2];
         }
 
@@ -197,9 +274,14 @@ public class EV3Skeleton {
         public EV3ColorSensorWrapper(Port port) {
             super(port);
 
-            sampleProviderRed = super.getRedMode();
-            sampleProviderRGB = super.getRGBMode();
-            sampleProviderColor = super.getColorIDMode();
+            try {
+                sampleProviderRed = super.getRedMode();
+                sampleProviderRGB = super.getRGBMode();
+                sampleProviderColor = super.getColorIDMode();
+            } catch (IllegalArgumentException e) {
+                super.close();
+                throw e;
+            }
 
             samples = new float[3];
         }
@@ -256,7 +338,12 @@ public class EV3Skeleton {
         public EV3UltrasonicSensorWrapper(Port port) {
             super(port);
 
-            sampleProvider = super.getDistanceMode();
+            try {
+                sampleProvider = super.getDistanceMode();
+            } catch (IllegalArgumentException e) {
+                super.close();
+                throw e;
+            }
             samples = new float[1];
         }
 
