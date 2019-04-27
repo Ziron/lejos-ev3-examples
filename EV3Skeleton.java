@@ -1,7 +1,5 @@
 
 // package *add package name here*;
-
-
 import lejos.hardware.Brick;
 import lejos.hardware.BrickFinder;
 import lejos.hardware.Button;
@@ -60,9 +58,6 @@ public class EV3Skeleton {
         Button.waitForAnyPress();
 
         // Add your code below here
-        
-        
-
     }
 
     /**
@@ -90,7 +85,7 @@ public class EV3Skeleton {
                     try {
                         touchSensor = new EV3TouchSensorWrapper(brick.getPort("S1"));
                     } catch (IllegalArgumentException e) {
-                        System.err.println("Touch sensor: " + e.getMessage());
+                        System.err.println("Touch sensor: " + e.getMessage() + ". Retrying...");
                     }
                 }
             }
@@ -102,7 +97,7 @@ public class EV3Skeleton {
                     try {
                         gyroSensor = new EV3GyroSensorWrapper(brick.getPort("S2"));
                     } catch (IllegalArgumentException e) {
-                        System.err.println("Gyro sensor: " + e.getMessage());
+                        System.err.println("Gyro sensor: " + e.getMessage() + ". Retrying...");
                     }
                 }
             }
@@ -114,7 +109,7 @@ public class EV3Skeleton {
                     try {
                         colorSensor = new EV3ColorSensorWrapper(brick.getPort("S3"));
                     } catch (IllegalArgumentException e) {
-                        System.err.println("Color sensor: " + e.getMessage());
+                        System.err.println("Color sensor: " + e.getMessage() + ". Retrying...");
                     }
                 }
             }
@@ -126,7 +121,7 @@ public class EV3Skeleton {
                     try {
                         distanceSensor = new EV3UltrasonicSensorWrapper(brick.getPort("S4"));
                     } catch (IllegalArgumentException e) {
-                        System.err.println("Ultrasonic sensor: " + e.getMessage());
+                        System.err.println("Ultrasonic sensor: " + e.getMessage() + ". Retrying...");
                     }
                 }
             }
@@ -153,12 +148,23 @@ public class EV3Skeleton {
     }
 
     /**
-     * Instantiates a MovePilot and PoseProvider.
-     * <br>
+     * Instantiates a MovePilot and PoseProvider with default parameters.<br>
      * Don't call this function if you plan to use leftMotor and rightMotor
      * directly to control the robot.
      */
     public static void initPilot() {
+        initPilot(WHEEL_DIAMETER, WHEEL_SPACING);
+    }
+
+    /**
+     * Instantiates a MovePilot and PoseProvider.<br>
+     * Don't call this function if you plan to use leftMotor and rightMotor
+     * directly to control the robot.
+     *
+     * @param wheelDiameter Diameter of wheels in meters
+     * @param wheelSpacing Distance between center of wheels in meters.
+     */
+    public static void initPilot(double wheelDiameter, double wheelSpacing) {
         if (pilot != null) {
             // Already initialized
             return;
@@ -171,13 +177,13 @@ public class EV3Skeleton {
         pilot = new MovePilot(chassis);
         poseProvider = new OdometryPoseProvider(pilot);
 
-        // Set default speed to 0.03 m/s and acceleration to 0.5 m/s^2
-        pilot.setLinearSpeed(0.03);
-        pilot.setLinearAcceleration(0.5);
+        // Set default speed to 0.3 m/s and acceleration to 0.9 m/s^2
+        pilot.setLinearSpeed(0.3);
+        pilot.setLinearAcceleration(0.9);
 
-        // Set default turn speed to 180 deg/s and acceleration to 1800 deg/s^2
+        // Set default turn speed to 180 deg/s and acceleration to 540 deg/s^2
         pilot.setAngularSpeed(180);
-        pilot.setAngularAcceleration(1800);
+        pilot.setAngularAcceleration(540);
     }
 
     /**
